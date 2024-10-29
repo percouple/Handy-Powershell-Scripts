@@ -22,3 +22,7 @@ To get started with the scripts in this repository:
 1. Clone the repository to your local machine:
    ```bash
    git clone https://github.com/percouple/Handy-Powershell-Scripts.git
+
+
+## Scripts Overview
+- get-my-graph-profile.ps1: grabs your DisplayName, Id, Mail, and             UserPrincipal name based on the organizationID you provide 
