@@ -1,0 +1,14 @@
+Task initiated on 10/30/2024 11:44:32 with parameters:
+    -ReadLocation: .\test-directory-1
+    -WriteLocation .\test-directory-2
+    -Schedule none
+    -FileType .csv
+    -LogFile .\backup-log.txt
+    -Overwrite True
+    
+  Read directory found successfully: .\test-directory-1
+  Write directory located successfully: .\test-directory-2
+
+I/O located successfully, copying...
+
+Filetype detected: .csv. Filter applied

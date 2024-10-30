@@ -1,18 +1,21 @@
-# Task: Create a PowerShell Script to Backup Files
-# Objective:
-# Write a PowerShell script that backs up specified files from a source directory to a destination directory. 
-# The script should include options for logging and error handling.
-
-# Requirements:
-# Parameters:
+# This script backs up files from one directory to another
+# It takes in 5 parameters: the source file path, the write file path,
+# whether to set the file up on a schedule (optional), 
+# a filter for the type of file to copy (optional), 
+# a log file (option)
 
 # Usage: ./backup-files.ps1 -ReadLocation "[C:\Path\to\your\readfile]" 
-# >> -WrteLocation "[C:\Path\to\your\writefile]" -FileType "[.txt]" -LogFile "[C:\Path\to\your\logfile]"
+# >> -WrteLocation "[C:\Path\to\your\writefile]" 
+# >> -Schedule ["Daily"]
+# >> -FileType "[.txt]" 
+# >> -LogFile "[C:\Path\to\your\logfile]"
+# >> -Overwrite ["$true"]
 
 # The script should accept the following parameters:
 # -Source: The directory from which files will be backed up.
 # -Destination: The directory where files will be copied.
 # -LogFile: (Optional) A path to a log file to record backup operations.
+# -Overwrite: Specifies whether to overwrite files already found in the path. 
 param (
     [Parameter(Mandatory=$true)]
     [string]$ReadLocation,
@@ -20,28 +23,24 @@ param (
     [Parameter(Mandatory=$true)]
     [string]$WriteLocation,
 
+    [ValidateSet("Hourly", "Daily", "Weekly", "Monthly")]
+    [string]$Schedule = $null,
+
+    [ValidateSet(".aac", ".ai", ".avi", ".bmp", ".csv", ".doc", ".docx", 
+    ".flac", ".gif", ".gz", ".html", ".htm", ".indd", ".ini", 
+    ".json", ".jpg", ".jpeg", ".js", ".mkv", ".mdb", ".mov", 
+    ".mp3", ".pdf", ".png", ".ppt", ".pptx", ".pst", ".rar", 
+    ".sql", ".tar", ".tiff", ".txt", ".vhd", ".vhdx", ".vmdk", 
+    ".zip")]
     [string]$FileType = $null,
 
-    [string]$LogFile = $null
+    [string]$LogFile = $null,
+
+    [bool]$Overwrite = $false
 )
 
-# Functionality:
-
-# Check if the source directory exists. If not, display an error message and exit the script.
-# Test the directory path 
-if (-not (Test-Path -Path $ReadLocation)) {
-    # Exit if we can't find the path
-    Write-Host "
-    Can't find the directory $ReadLocation, please ensure it exists at the expected location.
-    ";
-    exit;
-}
-
-Write-Host "
-$ReadLocation directory found successfully
-";
-
-# Takes in input string, returns boolean based on input string matching yes/no options
+# Takes in input string from (y/n) prompt, returns boolean
+# Expected behavior - Get-UserConfirmation("yes") = $true, "no" = $false
 function Get-UserConfirmation ($inputString) {
     # Loop for validating y/n inputs
     while ($true) {
@@ -60,31 +59,110 @@ function Get-UserConfirmation ($inputString) {
     }
 }
 
-# Check if the destination directory exists. If it doesn’t, create it.
+function Write-ToCustom {
+    param (
+        [string]$inputString,
+        [string]$Destination
+    )
+    if ($Destination.Contains("Host")) {
+        Write-Host $inputString
+    }
+    if ($LogFile -and $Destination.Contains("LogFile")) {
+        Out-File -Path $LogFile -InputObject $inputString -Append
+    }
+}
+
+# Delete Logfile if it already exists
+if (Test-Path -Path $LogFile) {
+    Remove-Item $LogFile;
+}
+
+# Force Overwrite to $false if not flagged on execute
+if (-not ($Overwrite)) {
+    $Overwrite = $false;
+}
+
+Write-ToCustom -inputString "Task initiated on $(Get-Date) with parameters:
+    -ReadLocation: $ReadLocation
+    -WriteLocation $WriteLocation
+    -Schedule $(if (-not $Schedule) {"none"} else {$Schedule})
+    -FileType $(if (-not $FileType) {"none"} else {$FileType})
+    -LogFile $(if (-not $LogFile) {"none"} else {$LogFile})
+    -Overwrite $OverWrite
+    " -Destination "LogFile";
+
+# If source directory doesn't exist
+# display an error message and exit the script.
+if (-not (Test-Path -Path $ReadLocation)) {
+    # Exit if we can't find the path
+    Write-ToCustom -inputString "
+    Can't find the directory $ReadLocation, please ensure it exists at the expected location.
+    " -Destination "Host, LogFile";
+    exit;
+}
+
+Write-ToCustom -inputString "  Read directory found successfully: $ReadLocation" -Destination "LogFile";
+
+# Check if the destination directory exists. 
+# If it doesn’t, create it.
 if (-not (Test-Path -Path $WriteLocation)) {
-    Write-Host "Routing"
+    Write-ToCustom "No location found for write directory $($WriteLocation). 
+Prompting user to create directory..." -Destination "LogFile";
+
     # If we should create a new directory
     if (Get-UserConfirmation) {
+
         # Create the new directory
         New-Item -Path ".\$WriteLocation"
     } else {
         # Exit otherwise
-        Write-Host "No directory to write to, exiting...
-        ";
+        Write-ToCustom "User chose to not write to the directory, exiting...
+        " -Destination "Host, LogFile";
         exit;
     }
 }
 
-# Copy all files from the source directory to the destination directory.
-# If a file already exists in the destination, overwrite it.
+Write-ToCustom "  Write directory located successfully: $WriteLocation
+" -Destination "LogFile"
+Write-ToCustom "I/O located successfully, copying..." -Destination "Host, LogFile";
+
+# Handle copies if given a file type
+# Get files of the read directory in a collection 
 if ($FileType) {
-    Copy-Item "$ReadLocation\*$FileType" -Destination $WriteLocation
+    Write-ToCustom "
+Filetype detected: $FileType. Filter applied" -Destination "LogFile";
+    $files = Get-ChildItem -Path "$ReadLocation\*$FileType"
 } else {
-    Copy-Item "$ReadLocation\*" -Destination $WriteLocation
+    Write-ToCustom "
+No filetype detected. No filter applied.
+    " -Destination "LogFile";
+    $files = Get-ChildItem -Path $ReadLocation;
 }
 
-# Log each operation (file copied and any errors) to the log file if the -LogFile parameter is provided.
-# Error Handling:
+# Copy each file in our collection to the destination folder
+foreach ($file in $files) {
+
+    # Check for the file already existing in the write location
+    $FileAlreadyExists = Test-Path "$file"
+    $ShortFileName = Split-Path -Path $file -Leaf
+
+    # If a file already exists in the write location && Overwrite === false
+    if ($FileAlreadyExists -and $Overwrite -eq $false ) {
+        Write-ToCustom "File [$ShortFileName] was found inside $WriteLocation. 
+        Overwrite parameter is disabled, cancelling backup for this file." -Destination "LogFile";
+        # Continue through loop
+        continue;
+    }
+
+    Try {
+        # Execute Copy
+        Copy-Item -Path $file -Destination $WriteLocation
+    } Catch {
+        Write-ToCustom "Could not copy $ShortFileName"
+    } Finally {
+        Write-ToCustom "Files done copying"
+    }
+}
 
 # Use Try, Catch, and Finally blocks to handle any errors that may occur during the copying process.
 # Write error messages to the console and to the log file if applicable.
