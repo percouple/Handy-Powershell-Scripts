@@ -37,3 +37,11 @@ ehthumbs.db
 Thumbs.db
 
 *.git
+
+# Test directories #
+####################
+./test-directory-1
+./test-directory-2
+
+*.csv
+*.txt

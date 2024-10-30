@@ -139,7 +139,21 @@ No filetype detected. No filter applied.
     $files = Get-ChildItem -Path $ReadLocation;
 }
 
-$TotalCopies = 0;
+# Establish 
+$CopiesSuccessful = 0;
+$CopiesAborted = 0;
+
+function Get-SpinnerIncrement {
+    param (
+        [Int32]$CopiesSuccessful
+    )
+    switch ($CopiesSuccessful % 4) {
+        1 { Write-Host -NoNewline "`rCopying."}
+        2 { Write-Host -NoNewline "`rCopying.."}
+        3 { Write-Host -NoNewline "`rCopying..."}
+        0 { Write-Host -NoNewline "`rCopying"}
+    }
+}
 
 # Copy each file in our collection to the destination folder
 foreach ($file in $files) {
@@ -159,14 +173,21 @@ foreach ($file in $files) {
     Try {
         # Execute Copy
         Copy-Item -Path $file -Destination $WriteLocation
-        $TotalCopies += 1;
+        $CopiesSuccessful += 1;
     } Catch {
         Write-ToCustom "Could not copy $ShortFileName" -Destination "LogFile";
+        $CopiesAborted += 1;
     }
+
+    Get-SpinnerIncrement -CopiesSuccessful $CopiesSuccessful;
 }
 
+Write-Host "`r                     "
+
 Write-ToCustom "
-Process finished. $TotalCopies files copied successfully. 
+Backup process complete. 
+  $CopiesSuccessful files copied successfully. 
+  $CopiesAborted files had issues and could not be copied to the backup drive.
 " -Destination "Host, LogFile"
 
 # Use Try, Catch, and Finally blocks to handle any errors that may occur during the copying process.
