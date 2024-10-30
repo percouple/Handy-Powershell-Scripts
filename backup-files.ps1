@@ -139,6 +139,8 @@ No filetype detected. No filter applied.
     $files = Get-ChildItem -Path $ReadLocation;
 }
 
+$TotalCopies = 0;
+
 # Copy each file in our collection to the destination folder
 foreach ($file in $files) {
 
@@ -157,12 +159,15 @@ foreach ($file in $files) {
     Try {
         # Execute Copy
         Copy-Item -Path $file -Destination $WriteLocation
+        $TotalCopies += 1;
     } Catch {
-        Write-ToCustom "Could not copy $ShortFileName"
-    } Finally {
-        Write-ToCustom "Files done copying"
+        Write-ToCustom "Could not copy $ShortFileName" -Destination "LogFile";
     }
 }
+
+Write-ToCustom "
+Process finished. $TotalCopies files copied successfully. 
+" -Destination "Host, LogFile"
 
 # Use Try, Catch, and Finally blocks to handle any errors that may occur during the copying process.
 # Write error messages to the console and to the log file if applicable.

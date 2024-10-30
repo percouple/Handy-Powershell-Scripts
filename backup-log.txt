@@ -1,8 +1,8 @@
-Task initiated on 10/30/2024 11:44:32 with parameters:
+Task initiated on 10/30/2024 11:56:00 with parameters:
     -ReadLocation: .\test-directory-1
     -WriteLocation .\test-directory-2
     -Schedule none
-    -FileType .csv
+    -FileType none
     -LogFile .\backup-log.txt
     -Overwrite True
     
@@ -11,4 +11,8 @@ Task initiated on 10/30/2024 11:44:32 with parameters:
 
 I/O located successfully, copying...
 
-Filetype detected: .csv. Filter applied
+No filetype detected. No filter applied.
+    
+
+Process finished. 2 files copied successfully. 
+
