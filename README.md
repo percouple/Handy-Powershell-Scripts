@@ -25,4 +25,7 @@ To get started with the scripts in this repository:
 
 
 ## Scripts Overview
-- get-my-graph-profile.ps1: grabs your DisplayName, Id, Mail, and             UserPrincipal name based on the organizationID you provide 
+- get-my-graph-profile.ps1:
+   Grabs your DisplayName, Id, Mail, and UserPrincipal name based on the organizationID you provide 
+- backup-files.ps1: 
+   Simple script to backup files from one provided directory to another. Handles errors, and contains features for file filtering, overwriting files, and scheduling regular backups.  
