@@ -11,7 +11,11 @@
 # >> -LogFile "[C:\Path\to\your\logfile]"
 # >> -Overwrite ["$true"]
 
-# The script should accept the following parameters:
+# Helper function file call
+. ".\Helper Functions\WriteToCustom.ps1";
+. ".\Helper Functions\GetUserConfirmation.ps1";
+
+# Parameters:
 # -Source: The directory from which files will be backed up.
 # -Destination: The directory where files will be copied.
 # -LogFile: (Optional) A path to a log file to record backup operations.
@@ -38,39 +42,6 @@ param (
 
     [bool]$Overwrite = $false
 )
-
-# Takes in input string from (y/n) prompt, returns boolean
-# Expected behavior - Get-UserConfirmation("yes") = $true, "no" = $false
-function Get-UserConfirmation ($inputString) {
-    # Loop for validating y/n inputs
-    while ($true) {
-
-        # Get option from users
-        $inputString = Read-Host "Couldn't find output directory. Create new directory $WriteLocation in current folder? (y/n)"
-
-        # Handle for yes
-        if ($inputString -match '^y|yes|Y|Yes|YES') {
-            return $true 
-        } elseif ($inputString -match 'n|no|No|NO|N') {
-            return $false
-        } else {
-            Write-Host "Invalid input. Please enter 'y' or 'n'."
-        }
-    }
-}
-
-function Write-ToCustom {
-    param (
-        [string]$inputString,
-        [string]$Destination
-    )
-    if ($Destination.Contains("Host")) {
-        Write-Host $inputString
-    }
-    if ($LogFile -and $Destination.Contains("LogFile")) {
-        Out-File -Path $LogFile -InputObject $inputString -Append
-    }
-}
 
 # Delete Logfile if it already exists
 if (Test-Path -Path $LogFile) {
@@ -126,22 +97,47 @@ Write-ToCustom "  Write directory located successfully: $WriteLocation
 " -Destination "LogFile"
 Write-ToCustom "I/O located successfully, copying..." -Destination "Host, LogFile";
 
+
+# Initialize a hash set to track visited directories
+$visitedDirectories = @{}
+# Track directories as we move through to avoid any loops
+function Get-ChildItemSafely {
+    param ($path)
+
+    # Check if the directory has been visited
+    if ($visitedDirectories.ContainsKey($path)) {
+        return @()  # Skip directories we've already visited
+    }
+
+    # Mark the directory as visited
+    $visitedDirectories[$path] = $true
+
+    
+    # Get child items from this directory
+    return Get-ChildItem -Path $path -Recurse
+    
+    # Spinner for gathering files to copy
+    Write-ToCustom "Gathering files: $($path)" -Destination "Host, LogFile"
+}
+
 # Handle copies if given a file type
 # Get files of the read directory in a collection 
 if ($FileType) {
     Write-ToCustom "
 Filetype detected: $FileType. Filter applied" -Destination "LogFile";
-    $files = Get-ChildItem -Path "$ReadLocation\*$FileType"
+    # Declare files
+    $files = Get-ChildItemSafely -Path "$ReadLocation\*$FileType" 
 } else {
     Write-ToCustom "
 No filetype detected. No filter applied.
     " -Destination "LogFile";
-    $files = Get-ChildItem -Path $ReadLocation;
+    $files = Get-ChildItemSafely -Path $ReadLocation 
 }
 
 # Establish variables to track copies for result message
 $CopiesSuccessful = 0;
 $CopiesAborted = 0;
+$CopiesSkipped = 0;
 
 # Function for spinner:
 # Takes in the amount of successful copies
@@ -151,10 +147,10 @@ function Get-SpinnerIncrement {
         [Int32]$CopiesSuccessful
     )
     switch ($CopiesSuccessful % 4) {
+        0 { Write-Host -NoNewline "`rCopying"}
         1 { Write-Host -NoNewline "`rCopying."}
         2 { Write-Host -NoNewline "`rCopying.."}
         3 { Write-Host -NoNewline "`rCopying..."}
-        0 { Write-Host -NoNewline "`rCopying"}
     }
 }
 
@@ -169,6 +165,7 @@ foreach ($file in $files) {
     if ($FileAlreadyExists -and $Overwrite -eq $false ) {
         Write-ToCustom "File [$ShortFileName] was found inside $WriteLocation. 
         Overwrite parameter is disabled, cancelling backup for this file." -Destination "LogFile";
+        $CopiesSkipped += 1;
         # Continue through loop
         continue;
     }
@@ -193,6 +190,7 @@ Write-ToCustom "
 Backup process complete. 
   $CopiesSuccessful files copied successfully. 
   $CopiesAborted files had issues and could not be copied to the backup drive.
+  $CopiesSkipped files were read from the read file but not overwritten in the write file.
 " -Destination "Host, LogFile"
 
 # Display a summary message indicating how many files were successfully copied and any errors encountered.
