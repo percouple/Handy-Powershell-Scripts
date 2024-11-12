@@ -5,7 +5,7 @@
 # a log file (option)
 
 # Usage: ./backup-files.ps1 -ReadLocation "[C:\Path\to\your\readfile]" 
-# >> -WrteLocation "[C:\Path\to\your\writefile]" 
+# >> -WriteLocation "[C:\Path\to\your\writefile]" 
 # >> -Schedule ["Daily"]
 # >> -FileType "[.txt]" 
 # >> -LogFile "[C:\Path\to\your\logfile]"
@@ -139,10 +139,13 @@ No filetype detected. No filter applied.
     $files = Get-ChildItem -Path $ReadLocation;
 }
 
-# Establish 
+# Establish variables to track copies for result message
 $CopiesSuccessful = 0;
 $CopiesAborted = 0;
 
+# Function for spinner:
+# Takes in the amount of successful copies
+# Prints a spinner to the console
 function Get-SpinnerIncrement {
     param (
         [Int32]$CopiesSuccessful
@@ -182,16 +185,14 @@ foreach ($file in $files) {
     Get-SpinnerIncrement -CopiesSuccessful $CopiesSuccessful;
 }
 
+# Line break to erase spinner
 Write-Host "`r                     "
 
+# Final output message to console
 Write-ToCustom "
 Backup process complete. 
   $CopiesSuccessful files copied successfully. 
   $CopiesAborted files had issues and could not be copied to the backup drive.
 " -Destination "Host, LogFile"
-
-# Use Try, Catch, and Finally blocks to handle any errors that may occur during the copying process.
-# Write error messages to the console and to the log file if applicable.
-# Output:
 
 # Display a summary message indicating how many files were successfully copied and any errors encountered.
