@@ -131,7 +131,8 @@ Write-ToCustom "I/O located successfully, copying..." -Destination "Host, LogFil
 if ($FileType) {
     Write-ToCustom "
 Filetype detected: $FileType. Filter applied" -Destination "LogFile";
-    $files = Get-ChildItem -Path "$ReadLocation\*$FileType"
+    # Declare files
+    $files = Get-ChildItem -Path "$ReadLocation\*$FileType" -Recurse
 } else {
     Write-ToCustom "
 No filetype detected. No filter applied.
