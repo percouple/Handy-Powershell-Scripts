@@ -1,8 +1,4 @@
 # This script backs up files from one directory to another
-# It takes in 5 parameters: the source file path, the write file path,
-# whether to set the file up on a schedule (optional), 
-# a filter for the type of file to copy (optional), 
-# a log file (option)
 
 # Usage: ./backup-files.ps1 -ReadLocation "[C:\Path\to\your\readfile]" 
 # >> -WriteLocation "[C:\Path\to\your\writefile]" 
