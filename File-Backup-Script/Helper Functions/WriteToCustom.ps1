@@ -1,4 +1,4 @@
-# Helper functions for the backup-files.ps1 script
+
 
 # Logs passed string to the logfile and/or host
 function Write-ToCustom {

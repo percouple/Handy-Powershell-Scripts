@@ -7,9 +7,10 @@
 # >> -LogFile "[C:\Path\to\your\logfile]"
 # >> -Overwrite ["$true"]
 
-# Helper function file call
+# Helper function files call
 . ".\Helper Functions\WriteToCustom.ps1";
 . ".\Helper Functions\GetUserConfirmation.ps1";
+. ".\Helper Functions\GetChildItemSafely.ps1";
 
 # Parameters:
 # -Source: The directory from which files will be backed up.
@@ -39,6 +40,7 @@ param (
     [bool]$Overwrite = $false
 )
 
+Write-Host "Routing"
 # Delete Logfile if it already exists
 if (Test-Path -Path $LogFile) {
     Remove-Item $LogFile;
@@ -57,6 +59,7 @@ Write-ToCustom -inputString "Task initiated on $(Get-Date) with parameters:
     -LogFile $(if (-not $LogFile) {"none"} else {$LogFile})
     -Overwrite $OverWrite
     " -Destination "LogFile";
+
 
 # If source directory doesn't exist
 # display an error message and exit the script.
@@ -92,29 +95,6 @@ Prompting user to create directory..." -Destination "LogFile";
 Write-ToCustom "  Write directory located successfully: $WriteLocation
 " -Destination "LogFile"
 Write-ToCustom "I/O located successfully, copying..." -Destination "Host, LogFile";
-
-
-# Initialize a hash set to track visited directories
-$visitedDirectories = @{}
-# Track directories as we move through to avoid any loops
-function Get-ChildItemSafely {
-    param ($path)
-
-    # Check if the directory has been visited
-    if ($visitedDirectories.ContainsKey($path)) {
-        return @()  # Skip directories we've already visited
-    }
-
-    # Mark the directory as visited
-    $visitedDirectories[$path] = $true
-
-    
-    # Get child items from this directory
-    return Get-ChildItem -Path $path -Recurse
-    
-    # Spinner for gathering files to copy
-    Write-ToCustom "Gathering files: $($path)" -Destination "Host, LogFile"
-}
 
 # Handle copies if given a file type
 # Get files of the read directory in a collection 
